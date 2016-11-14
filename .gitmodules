@@ -1,0 +1,3 @@
+[submodule "codegen/botocore"]
+	path = codegen/botocore
+	url = git@github.com:boto/botocore.git
