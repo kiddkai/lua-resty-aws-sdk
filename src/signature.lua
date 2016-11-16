@@ -35,6 +35,9 @@ local function hmac_sha256(key, msg)
 end
 
 
+_M.hmac_sha256 = hmac_sha256
+
+
 
 -- @see http://docs.aws.amazon.com/general/latest/gr/sigv4-create-canonical-request.html
 local function sha256_hex(payload)
@@ -94,18 +97,21 @@ end
 --     '')
 -- @see http://docs.aws.amazon.com/general/latest/gr/sigv4-create-canonical-request.html
 local function canonical_req(method, uri, query, headers, payload)
-    return string.upper(method)         .. '\n' ..
-           uri                          .. '\n' ..
-           encode_args(query)           .. '\n' ..
-           encode_headers(headers)      .. '\n' ..
-           create_sign_headers(headers) .. '\n' ..
-           sha256_hex(payload)
+    local signed_headers = create_sign_headers(headers)
+    local cstr = string.upper(method)    .. '\n' ..
+                 uri                     .. '\n' ..
+                 encode_args(query)      .. '\n' ..
+                 encode_headers(headers) .. '\n' ..
+                 signed_headers          .. '\n' ..
+                 sha256_hex(payload)
+
+    return cstr, signed_headers
 end
 
 
 
 _M.new_canonical_request = canonical_req
-_M.hash_canonical = sha256_hex
+_M.hash = sha256_hex
 
 
 
@@ -155,6 +161,11 @@ end
 
 
 
+_M.str_to_sign = string_to_sign
+
+
+
+
 -- print(derive_key('wJalrXUtnFEMI/K7MDENG+bPxRfiCYEXAMPLEKEY', '20150830', 'us-east-1', 'iam'))
 local function derive_key(aws_secret, d, region, service)
     local ord = { region, service, 'aws4_request' }
@@ -171,28 +182,29 @@ local function derive_key(aws_secret, d, region, service)
 end
 
 
-function _M.create_signiture(aws_secret, d, region, service, data)
-    return str.to_hex( hmac_sha256(derive_key(aws_secret, d, region, service), data))
+function _M.new_signature(aws_secret, d, region, service, data)
+    return str.to_hex(hmac_sha256(derive_key(aws_secret, d, region, service), data))
 end
 
 
 
-local headers = {
-    {'content-type', 'application/x-www-form-urlencoded; charset=utf-8'},
-    {'HOST', 'iam.amazonaws.com'},
-    {'x-amz-date', '20150830T123600Z'}
-} 
-local c = canonical_req(
-    'GET',
-    '/',
-    {{'Action','ListUsers'}, {'Version','2010-05-08'}},
-    headers,
-    '')
 
-local chash = sha256_hex(c)
-local sts = string_to_sign(chash, headers, 'us-east-1', 'iam')
-print(sts)
-print('----------------------------------------------------------------------------------------\n')
-print(_M.create_signiture('wJalrXUtnFEMI/K7MDENG+bPxRfiCYEXAMPLEKEY', '20150830', 'us-east-1', 'iam', sts))
+-- local headers = {
+--     {'content-type', 'application/x-www-form-urlencoded; charset=utf-8'},
+--     {'HOST', 'iam.amazonaws.com'},
+--     {'x-amz-date', '20150830T123600Z'}
+-- } 
+-- local c = canonical_req(
+--     'GET',
+--     '/',
+--     {{'Action','ListUsers'}, {'Version','2010-05-08'}},
+--     headers,
+--     '')
+-- 
+-- local chash = sha256_hex(c)
+-- local sts = string_to_sign(chash, headers, 'us-east-1', 'iam')
+-- print(sts)
+-- print('----------------------------------------------------------------------------------------\n')
+-- print(_M.new_signature('wJalrXUtnFEMI/K7MDENG+bPxRfiCYEXAMPLEKEY', '20150830', 'us-east-1', 'iam', sts))
 
---return _M
+return _M
