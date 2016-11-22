@@ -20,7 +20,7 @@ test:
 .PHONY: test
 	
 clean:
-	make -C codegen clean
-	rm lib/resty/aws/*.lua
+	-make -C codegen clean
+	-rm lib/resty/aws/*.lua
 
 .PHONY: clean

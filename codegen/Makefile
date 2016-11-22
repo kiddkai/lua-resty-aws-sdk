@@ -17,7 +17,7 @@ dist/sqs.lua: dist
 	RESTY ./main.lua sqs > dist/sqs.lua
 
 clean:
-	rm -rf dist
+	-rm -rf dist
 
 .PHONY: clean
 
