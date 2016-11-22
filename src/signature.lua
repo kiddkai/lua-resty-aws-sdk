@@ -50,25 +50,23 @@ end
 
 -- @see http://docs.aws.amazon.com/general/latest/gr/sigv4-create-canonical-request.html
 local function encode_headers(headers)
-    local header
-    local result = ''
+    local header, vidx
+    local visited = {}
+    local result = {}
+    local sign_headers = {}
     for i = 1, #headers do
         header = headers[i]
-        result = result .. string.lower(header[1]) .. ':' .. header[2] .. '\n'
+        local header_name = string.lower(header[1])
+        vidx = visited[header_name]
+        if not vidx then
+            table.insert(result, header_name .. ':' .. header[2])
+            table.insert(sign_headers, header_name)
+            visited[header_name] = #result
+        else
+            result[vidx] = result[vidx] .. ',' .. header[2]
+        end
     end
-    return result
-end
-
-
--- @see http://docs.aws.amazon.com/general/latest/gr/sigv4-create-canonical-request.html
-local function create_sign_headers(headers)
-    local names = new_tab(#headers, 0)
-    local header
-    for i = 1, #headers do
-        header = headers[i]
-        names[i] = string.lower(header[1])
-    end
-    return table.concat(names, ';')
+    return table.concat(result, '\n') .. '\n', table.concat(sign_headers, ';')
 end
 
 
@@ -76,36 +74,29 @@ end
 local function encode_args(to_encode)
     local args = new_tab(#to_encode, 0)
     local arg
+    local val
     for i = 1, #to_encode do
         arg = to_encode[i]
-        args[i] = arg[1] .. '=' .. ngx.escape_uri(arg[2])
+        val = ngx.escape_uri(arg[2] or '')
+        -- escape_uri does not handling '$' correctly
+        val = ngx.re.gsub(val, '\\$', '%24')
+        args[i] = ngx.escape_uri(arg[1]) .. '=' .. val
     end
     return table.concat(args, '&')
 end
 
 
---
--- local c = canonical_req(
---     'GET',
---     '/',
---     {{'Action','ListUsers'}, {'Version','2010-05-08'}},
---     {
---         {'content-type', 'application/x-www-form-urlencoded; charset=utf-8'},
---         {'HOST', 'iam.amazonaws.com'},
---         {'x-amz-date', '20150830T123600Z'}
---     },
---     '')
 -- @see http://docs.aws.amazon.com/general/latest/gr/sigv4-create-canonical-request.html
 local function canonical_req(method, uri, query, headers, payload)
-    local signed_headers = create_sign_headers(headers)
+    local encoded_headers, sign_headers = encode_headers(headers)
     local cstr = string.upper(method)    .. '\n' ..
                  uri                     .. '\n' ..
                  encode_args(query)      .. '\n' ..
-                 encode_headers(headers) .. '\n' ..
-                 signed_headers          .. '\n' ..
+                 encoded_headers         .. '\n' ..
+                 sign_headers            .. '\n' ..
                  sha256_hex(payload)
 
-    return cstr, signed_headers
+    return cstr, sign_headers
 end
 
 
@@ -165,8 +156,6 @@ _M.str_to_sign = string_to_sign
 
 
 
-
--- print(derive_key('wJalrXUtnFEMI/K7MDENG+bPxRfiCYEXAMPLEKEY', '20150830', 'us-east-1', 'iam'))
 local function derive_key(aws_secret, d, region, service)
     local ord = { region, service, 'aws4_request' }
     local len = #ord
@@ -182,29 +171,18 @@ local function derive_key(aws_secret, d, region, service)
 end
 
 
+
 function _M.new_signature(aws_secret, d, region, service, data)
     return str.to_hex(hmac_sha256(derive_key(aws_secret, d, region, service), data))
 end
 
 
 
+function _M.new_auth_header(cred, signed_headers, d, region, service, data)
+    local signature = _M.new_signature(cred.secret, d, region, service, data)
+    return 'AWS4-HMAC-SHA256 Credential=' .. cred.key .. '/' .. d .. '/' .. region .. '/' .. service .. '/aws4_request, SignedHeaders=' .. signed_headers .. ', Signature=' .. signature
+end
 
--- local headers = {
---     {'content-type', 'application/x-www-form-urlencoded; charset=utf-8'},
---     {'HOST', 'iam.amazonaws.com'},
---     {'x-amz-date', '20150830T123600Z'}
--- } 
--- local c = canonical_req(
---     'GET',
---     '/',
---     {{'Action','ListUsers'}, {'Version','2010-05-08'}},
---     headers,
---     '')
--- 
--- local chash = sha256_hex(c)
--- local sts = string_to_sign(chash, headers, 'us-east-1', 'iam')
--- print(sts)
--- print('----------------------------------------------------------------------------------------\n')
--- print(_M.new_signature('wJalrXUtnFEMI/K7MDENG+bPxRfiCYEXAMPLEKEY', '20150830', 'us-east-1', 'iam', sts))
+
 
 return _M

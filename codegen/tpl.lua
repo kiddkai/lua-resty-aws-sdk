@@ -7,6 +7,7 @@ local request = require 'resty.aws.request'
 
 local VERSION = '$(API_VERSION)'
 local CONTENT_TYPE = '$(CONTENT_TYPE)'
+local SIGNATURE_VERSION = '$(SIGNATURE_VERSION)'
 
 local REGIONS = {
 # for _, region in pairs(REGIONS) do
@@ -30,7 +31,9 @@ function _M.new(_, region)
     end
 
     return setmetatable({
-        endpoint = REGIONS[r]
+        service = '$(NAME)',
+        scope = region .. '/$(NAME)/aws4_request',
+        host = REGIONS[r]
     }, mt)
 end
 
@@ -39,3 +42,4 @@ $(METHODS)
 
 
 return _M
+

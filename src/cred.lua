@@ -1,8 +1,3 @@
---
--- Load AWS credential
---
---
-
 local http = require 'resty.http'
 local json = require 'cjson'
 local _M = {}
@@ -10,6 +5,7 @@ local _M = {}
 function _M.from_env()
     local key_id = os.getenv('AWS_ACCESS_KEY_ID')
     local secret = os.getenv('AWS_SECRET_ACCESS_KEY')
+    local session_token = os.getenv('AWS_SESSION_TOKEN')
 
     if not key_id or not secret then
         return nil, 'not found'
@@ -17,7 +13,8 @@ function _M.from_env()
 
     return {
         key = key_id,
-        secret = secret
+        secret = secret,
+        session_token = session_token
     }
 end
 
@@ -44,7 +41,8 @@ function _M.from_iam_role(role_name, host)
 
     return {
         key = body['AccessKeyId'],
-        secret = body['SecretAccessKey']
+        secret = body['SecretAccessKey'],
+        session_token = body['Token']
     }
 end
 

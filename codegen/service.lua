@@ -1,7 +1,6 @@
 local ngx = require 'ngx'
 local json = require 'cjson'
 local lfs = require 'lfs'
-local pp = require 'pl.pretty'
 local template = require 'pl.template'
 local dir = require 'pl.dir'
 local path = require 'pl.path'
@@ -116,6 +115,7 @@ local function parse_protocol(spec)
     end
 end
 
+local pp = require 'pl.pretty'
 
 local function build_uri(segements)
     local len = #segements
@@ -123,6 +123,9 @@ local function build_uri(segements)
     local in_str = false
 
     local seg
+    if #segements == 0 then
+        return "'/'"
+    end
     for i = 1, len do
         seg = segements[i]
         if seg.type == 'text' then
@@ -193,10 +196,12 @@ local function parse_uri(uri)
     return res
 end
 
+
 local function render_method(env)
     local tpl = file.read(lfs.currentdir() .. '/method_tpl.lua')
     return template.substitute(tpl, env)
 end
+
 
 local function render_spec(spec)
    local ops = spec.operations 
@@ -208,7 +213,7 @@ local function render_spec(spec)
    for _, operation in pairs(ops) do
         uri_params = {}
         queries = {}
-        headers = {}
+        headers = { "'X-Amz-Date'", "'Host'", "'X-Amz-Security-Token'" }
         input = operation.input
 
         local uri_exp = build_uri(parse_uri(operation.http.requestUri))
@@ -257,6 +262,7 @@ local function render(name)
 
     local env = {
         API_VERSION = spec.metadata.apiVersion,
+        SIGNATURE_VERSION = spec.metadata.signatureVersion,
         CONTENT_TYPE = parse_protocol(spec),
         NAME = name,
         REGIONS = regions_for_service(name),
@@ -269,6 +275,4 @@ local function render(name)
 end
 
 
-print(render('lambda'))
-
-
+return render

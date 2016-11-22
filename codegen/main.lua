@@ -1,4 +1,5 @@
 #!/usr/local/openresty/bin/resty
 
+local render = require 'service'
 
-print('code gen')
+print(render(arg[1]))
