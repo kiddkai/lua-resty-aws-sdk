@@ -32,7 +32,7 @@ function _M.new(_, region)
 
     return setmetatable({
         service = '$(NAME)',
-        scope = region .. '/$(NAME)/aws4_request',
+        scope = r .. '/$(NAME)/aws4_request',
         host = REGIONS[r]
     }, mt)
 end
