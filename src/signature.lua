@@ -130,7 +130,7 @@ _M.date = date
 
 
 
-local function string_to_sign(canonical_hash, headers, region, service)
+local function str_to_sign(canonical_hash, headers, region, service)
     local amz_d
 
     for i = 1, #headers do
@@ -152,7 +152,7 @@ end
 
 
 
-_M.str_to_sign = string_to_sign
+_M.str_to_sign = str_to_sign
 
 
 
