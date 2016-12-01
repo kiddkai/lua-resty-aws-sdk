@@ -20,7 +20,7 @@ with `proxy_pass`, or `lua-resty-http` or any other library you want.
 
 ```lua
 local lambda = require 'resty.aws.lambda'
-local cred = requrie 'resty.aws.cred'
+local cred = require 'resty.aws.cred'
 local json = require 'cjson'
 
 local c = cred.from_env()
@@ -30,7 +30,7 @@ local body = json.encode({
 })
 
 local req = l:Invoke(c, {
-    FunctionName = 'test' 
+    FunctionName = 'test',
     ['X-Amz-Client-Context'] = '<some_base64_json_context>'
 }, body)
 
