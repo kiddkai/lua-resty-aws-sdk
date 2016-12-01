@@ -44,8 +44,8 @@ function _M.new(_, region)
 
     return setmetatable({
         service = 'lambda',
-        scope = region .. '/lambda/aws4_request',
-        host = REGIONS[r]
+        scope = r .. '/lambda/aws4_request',
+        host = ENDPOINTS[r]
     }, mt)
 end
 

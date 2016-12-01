@@ -50,8 +50,8 @@ function _M.new(_, region)
 
     return setmetatable({
         service = 'sns',
-        scope = region .. '/sns/aws4_request',
-        host = REGIONS[r]
+        scope = r .. '/sns/aws4_request',
+        host = ENDPOINTS[r]
     }, mt)
 end
 
