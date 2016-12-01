@@ -1,5 +1,5 @@
 local ngx = require 'ngx'
-local signature = require 'signature'
+local signature = require 'resty.aws.signature'
 
 
 local function build_query(opts)
